@@ -11,7 +11,7 @@ class DwollaAuthenticator < ::Auth::OAuth2Authenticator
                       :name => 'dwolla',
                       :client_id => GlobalSetting.dwolla_client_id,
                       :client_secret => GlobalSetting.dwolla_client_secret,
-                      :scope => 'AccountInfoFull',
+                      :scope => 'AccountInfoFull|Email',
                       :provider_ignores_state => true,
                       :client_options => {
                         :site => 'https://www.dwolla.com',
@@ -28,6 +28,9 @@ class DwollaAuthenticator < ::Auth::OAuth2Authenticator
     json = JSON.parse(open("https://www.dwolla.com/oauth/rest/users/?oauth_token=#{token}").read)
     user = json['Response']
     result.name = user['Name']
+
+    json = JSON.parse(open("https://www.dwolla.com/oauth/rest/users/email?oauth_token=#{token}").read)
+    result.email = json['Response']['Email']
 
     current_info = ::PluginStore.get("dwolla", "dwolla_user_#{user['Id']}")
     if current_info
