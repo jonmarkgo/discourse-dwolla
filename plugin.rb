@@ -34,8 +34,8 @@ class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
   end
 
 end
-class MLH < OmniAuth::Strategies::OAuth2
-  option :name, :mlh
+class OmniAuth::Strategies::MLH < OmniAuth::Strategies::OAuth2
+  option :name, "mlh"
 
   option :client_options, {
     :site => 'https://my.mlh.io',
