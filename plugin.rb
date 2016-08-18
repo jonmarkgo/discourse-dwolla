@@ -4,7 +4,9 @@
 # author: Jonathan Gottfried
 
 require 'auth/oauth2_authenticator'
-require 'omniauth-mlh'
+require 'omniauth-oauth2'
+require 'openssl'
+require 'base64'
 
 class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
   def register_middleware(omniauth)
