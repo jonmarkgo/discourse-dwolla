@@ -34,6 +34,7 @@ class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
   end
 
 end
+OmniAuth.config.add_camelization 'mlh', 'MLH'
 class OmniAuth::Strategies::MLH < OmniAuth::Strategies::OAuth2
   option :name, "mlh"
 
@@ -71,6 +72,7 @@ class OmniAuth::Strategies::MLH < OmniAuth::Strategies::OAuth2
     @raw_info ||= access_token.get('/api/v1/user.json').parsed
   end
 end
+OmniAuth.config.add_camelization 'mlh', 'MLH'
 auth_provider title: 'Sign in with MyMLH',
               message: 'Log in using your MyMLh account. (Make sure your popup blocker is disabled.)',
               full_screen_login: true,
