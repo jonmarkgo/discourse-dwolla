@@ -74,7 +74,7 @@ end
 auth_provider title: 'Sign in with MyMLH',
               message: 'Log in using your MyMLh account. (Make sure your popup blocker is disabled.)',
               full_screen_login: true,
-              authenticator: MyMLhAuthenticator.new('mlh',
+              authenticator: MyMLHAuthenticator.new('mlh',
                                                           trusted: true,
                                                           auto_create_account: true)
 register_css <<CSS
