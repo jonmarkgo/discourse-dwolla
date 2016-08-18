@@ -8,7 +8,10 @@ require 'omniauth-oauth2'
 require 'openssl'
 require 'base64'
 
+enabled_site_setting :mymlh_enabled
+
 class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
+
   def register_middleware(omniauth)
     omniauth.provider :mlh,
         setup: lambda { |env|
@@ -17,13 +20,15 @@ class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
               strategy.options[:client_secret] = SiteSetting.mymlh_secret
         }
   end
-
+  def name
+    'MyMLH'
+  end
   def after_authenticate(auth_token)
     result = super
 
     if result.user && result.email && (result.user.email != result.email)
       begin
-        result.user.update_columns(email: result.email)
+        result.user.update_columns(email: result.email, name: result.first_name + " " + result.last_name)
       rescue
         used_by = User.find_by(email: result.email).try(:email)
         Rails.logger.warn("FAILED to update email for #{result.user.email} to #{result.email} cause it is in use by #{used_by}")
@@ -72,9 +77,9 @@ class OmniAuth::Strategies::MLH < OmniAuth::Strategies::OAuth2
     @raw_info ||= access_token.get('/api/v1/user.json').parsed
   end
 end
-OmniAuth.config.add_camelization 'mlh', 'MLH'
+
 auth_provider title: 'Sign in with MyMLH',
-              message: 'Log in using your MyMLh account. (Make sure your popup blocker is disabled.)',
+              message: 'Log in using your MyMLH account. (Make sure your popup blocker is disabled.)',
               full_screen_login: true,
               authenticator: MyMLHAuthenticator.new('mlh',
                                                           trusted: true,

@@ -1,3 +1,6 @@
-plugins:
+login:
   mymlh_app_id: ""
   mymlh_secret: ""
+  mymlh_enabled:
+    client: true
+    default: false
