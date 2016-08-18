@@ -1,13 +1,12 @@
-discourse-dwolla
+discourse-mlh
 ================
 
-Support Authentication via Dwolla
+Support Authentication via MyMLH
 
 Configuration:
 ==============
 
-Add `dwolla_client_id` and `dwolla_client_secret` to your discourse.conf or
-create environment variables `DISCOURSE_DWOLLA_CLIENT_ID` and `DISCOURSE_CLIENT_SECRET`.
+Add `mymlh_app_id` and `mymlh_secret` in Login Settings.
 
 LICENSE
 =======

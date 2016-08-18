@@ -1,61 +1,81 @@
-# name: discourse-dwolla
-# about: dwolla login provider
+# name: discourse-mymlh
+# about: mymlh login provider
 # version: 0.1
-# author: Robin Ward
+# author: Jonathan Gottfried
 
-require_dependency 'auth/oauth2_authenticator'
+require 'auth/oauth2_authenticator'
+require 'omniauth-mlh'
 
-class DwollaAuthenticator < ::Auth::OAuth2Authenticator
+class MyMLHAuthenticator < ::Auth::OAuth2Authenticator
   def register_middleware(omniauth)
-    omniauth.provider :oauth2,
-                      :name => 'dwolla',
-                      :client_id => GlobalSetting.dwolla_client_id,
-                      :client_secret => GlobalSetting.dwolla_client_secret,
-                      :scope => 'AccountInfoFull|Email',
-                      :provider_ignores_state => true,
-                      :client_options => {
-                        :site => 'https://www.dwolla.com',
-                        :authorize_url => '/oauth/v2/authenticate',
-                        :token_url => '/oauth/v2/token'
-                      }
+    omniauth.provider :mlh,
+        setup: lambda { |env|
+              strategy = env["omniauth.strategy"]
+              strategy.options[:client_id] = SiteSetting.mymlh_app_id
+              strategy.options[:client_secret] = SiteSetting.mymlh_secret
+        }
   end
 
-  def after_authenticate(auth)
-    result = Auth::Result.new
-    token = URI.escape(auth['credentials']['token'])
-    token.gsub!(/\+/, '%2B')
+  def after_authenticate(auth_token)
+    result = super
 
-    json = JSON.parse(open("https://www.dwolla.com/oauth/rest/users/?oauth_token=#{token}").read)
-    user = json['Response']
-    result.name = user['Name']
-
-    json = JSON.parse(open("https://www.dwolla.com/oauth/rest/users/email?oauth_token=#{token}").read)
-    result.email = json['Response']['Email']
-
-    current_info = ::PluginStore.get("dwolla", "dwolla_user_#{user['Id']}")
-    if current_info
-      result.user = User.where(id: current_info[:user_id]).first
+    if result.user && result.email && (result.user.email != result.email)
+      begin
+        result.user.update_columns(email: result.email)
+      rescue
+        used_by = User.find_by(email: result.email).try(:email)
+        Rails.logger.warn("FAILED to update email for #{result.user.email} to #{result.email} cause it is in use by #{used_by}")
+      end
     end
-    result.extra_data = { dwolla_user_id: user['Id'] }
+
     result
   end
 
-  def after_create_account(user, auth)
-    ::PluginStore.set("dwolla", "dwolla_user_#{auth[:extra_data][:dwolla_user_id]}", {user_id: user.id })
-  end
-
 end
+class MLH < OmniAuth::Strategies::OAuth2
+  option :name, :mlh
 
-auth_provider :title => 'with Dwolla',
-              :authenticator => DwollaAuthenticator.new('dwolla'),
-              :message => 'Authorizing with Dwolla (make sure pop up blockers are not enabled)',
-              :frame_width => 600,
-              :frame_height => 300
-
-register_css <<CSS
-
-  button.btn-social.dwolla {
-    background-color: #d94d00
+  option :client_options, {
+    :site => 'https://my.mlh.io',
+    :authorize_path  => '/oauth/authorize',
+    :token_path => '/oauth/token'
   }
 
+  uid { raw_info['data']['id'] }
+
+  info do
+    {
+      :email                => raw_info['data']['email'],
+      :created_at           => raw_info['data']['created_at'],
+      :updated_at           => raw_info['data']['updated_at'],
+      :first_name           => raw_info['data']['first_name'],
+      :last_name            => raw_info['data']['last_name'],
+      :graduation           => raw_info['data']['graduation'],
+      :major                => raw_info['data']['major'],
+      :shirt_size           => raw_info['data']['shirt_size'],
+      :dietary_restrictions => raw_info['data']['dietary_restrictions'],
+      :special_needs        => raw_info['data']['special_needs'],
+      :date_of_birth        => raw_info['data']['date_of_birth'],
+      :gender               => raw_info['data']['gender'],
+      :phone_number         => raw_info['data']['phone_number'],
+      :school               => {
+                              :id =>  raw_info['data']['school']['id'],
+                              :name =>  raw_info['data']['school']['name'],
+                            }
+    }
+  end
+
+  def raw_info
+    @raw_info ||= access_token.get('/api/v1/user.json').parsed
+  end
+end
+auth_provider title: 'Sign in with MyMLH',
+              message: 'Log in using your MyMLh account. (Make sure your popup blocker is disabled.)',
+              full_screen_login: true,
+              authenticator: MyMLhAuthenticator.new('mlh',
+                                                          trusted: true,
+                                                          auto_create_account: true)
+register_css <<CSS
+.btn.mlh { background-color: #999; }
 CSS
+

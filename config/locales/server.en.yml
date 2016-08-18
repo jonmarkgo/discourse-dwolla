@@ -1,0 +1,4 @@
+en:
+  site_settings:
+    mymlh_app_id: "oauth2 client id"
+    mymlh_secret: "oauth2 client secret"
